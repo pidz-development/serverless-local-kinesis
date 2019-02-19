@@ -92,7 +92,7 @@ export class ServerlessLocalKinesis {
 
     const shardIterator = await this.kinesis.getShardIterator(params).promise();
 
-    console.log('⏰ Polling for events');
+    this.serverlessLog('⏰ Polling for events');
 
     functions.forEach(async (handler) => {
       handler = handler.split('.');
