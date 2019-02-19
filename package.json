@@ -4,7 +4,8 @@
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "babel src -d lib"
+    "build": "babel src -d lib",
+    "prepublish": "yarn build"
   },
   "dependencies": {
     "aws-sdk": "^2.404.0",
