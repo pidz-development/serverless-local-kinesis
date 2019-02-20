@@ -72,6 +72,14 @@ export class ServerlessLocalKinesis {
   };
 
   watchEvents = async (streamName) => {
+    const stream = await this.kinesis.describeStream({ StreamName: streamName }).promise();
+
+    const { ShardId } = stream.StreamDescription.Shards[0];
+
+    const params = { StreamName: streamName, ShardId, ShardIteratorType: 'LATEST' };
+
+    const shardIterator = await this.kinesis.getShardIterator(params).promise();
+
     let functions = [];
 
     for (const name of _.keys(this.serverless.service.functions)) {
@@ -84,35 +92,13 @@ export class ServerlessLocalKinesis {
       }
     }
 
-    const stream = await this.kinesis.describeStream({StreamName: streamName}).promise();
+    // added two spaces after the emoji so the log looks fine
+    this.serverlessLog('⏰  Polling for events');
 
-    const { ShardId } = stream.StreamDescription.Shards[0];
-
-    const params = { StreamName: streamName, ShardId, ShardIteratorType: 'LATEST' };
-
-    const shardIterator = await this.kinesis.getShardIterator(params).promise();
-
-    this.serverlessLog('⏰ Polling for events');
-
-    functions.forEach(async (handler) => {
-      handler = handler.split('.');
-
-      const moduleFileName = `${handler[0]}.js`;
-      const handlerFilePath = path.join(this.serverless.config.servicePath, webpackFolder, 'service', moduleFileName);
-      const module = require(handlerFilePath);
-      const functionObjectPath = handler.slice(1);
-
-      let mod = module;
-
-      for (let p of functionObjectPath) {
-        mod = mod[p];
-      }
-
-      this.pollKinesis(mod)(shardIterator.ShardIterator);
-    });
+    this.pollKinesis(functions)(shardIterator.ShardIterator);
   };
 
-  pollKinesis = lambda => (firstShardIterator) => {
+  pollKinesis = functions => (firstShardIterator) => {
     const mapKinesisRecord = record => ({
       data: record.Data.toString('base64'),
       sequenceNumber: record.SequenceNumber,
@@ -120,18 +106,33 @@ export class ServerlessLocalKinesis {
       partitionKey: record.PartitionKey,
     });
 
-    const reduceRecord = lambda => (promise, kinesisRecord) => promise.then(() => {
+    const reduceRecord = functions => (promise, kinesisRecord) => promise.then(() => {
       const singleRecordEvent = { Records: [{ kinesis: mapKinesisRecord(kinesisRecord) }] };
 
-      this.serverlessLog(`🤗 Invoking lambda`);
+      functions.forEach(async (handler) => {
+        handler = handler.split('.');
 
-      return lambda(singleRecordEvent, {});
+        const moduleFileName = `${handler[0]}.js`;
+        const handlerFilePath = path.join(this.serverless.config.servicePath, webpackFolder, 'service', moduleFileName);
+        const module = require(handlerFilePath);
+        const functionObjectPath = handler.slice(1);
+
+        let mod = module;
+
+        for (let p of functionObjectPath) {
+          mod = mod[p];
+        }
+
+        this.serverlessLog(`🤗 Invoking lambda '${handler[0]}.${handler[1]}'`);
+
+        return mod(singleRecordEvent);
+      });
     });
 
     const fetchAndProcessRecords = async (shardIterator) => {
       const records = await this.kinesis.getRecords({ ShardIterator: shardIterator }).promise();
 
-      await records.Records.reduce(reduceRecord(lambda), Promise.resolve());
+      await records.Records.reduce(reduceRecord(functions), Promise.resolve());
 
       setTimeout(async () => {
         await fetchAndProcessRecords(records.NextShardIterator);
