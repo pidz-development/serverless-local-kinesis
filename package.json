@@ -4,21 +4,23 @@
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "babel src -d lib",
-    "prepublish": "yarn build"
+    "build": "tsc",
+    "lint": "tslint -p tsconfig.json",
+    "prepublishOnly": "yarn lint && yarn build"
   },
   "dependencies": {
     "aws-sdk": "^2.404.0",
-    "axios": "^0.18.0",
     "kinesalite": "^2.0.0",
     "lodash": "^4.17.11"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.3.3",
-    "@babel/plugin-proposal-class-properties": "^7.3.3",
-    "@babel/plugin-transform-runtime": "^7.2.0",
-    "@babel/preset-env": "^7.3.1",
-    "@babel/runtime": "^7.3.1"
-  }
+    "@types/lodash": "^4.14.121",
+    "@types/node": "^11.9.5",
+    "tslint": "^5.13.1",
+    "tslint-eslint-rules": "^5.4.0",
+    "typescript": "^3.3.3333"
+  },
+  "files": [
+    "lib/**/*"
+  ]
 }
