@@ -1,0 +1,18 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended",
+    "tslint-eslint-rules"
+  ],
+  "jsRules": {},
+  "rules": {
+    "quotemark": [true, "single"],
+    "indent": [true, "spaces", 2],
+    "whitespace": [
+      true,
+      "check-module"
+    ],
+    "object-curly-spacing": true
+  },
+  "rulesDirectory": []
+}
