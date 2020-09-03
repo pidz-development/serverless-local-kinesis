@@ -26,6 +26,7 @@ class ServerlessLocalKinesis {
 
     this.hooks = {
       'before:offline:start': this.run.bind(this),
+      'before:offline:start:init': this.run.bind(this),
     };
   }
 
